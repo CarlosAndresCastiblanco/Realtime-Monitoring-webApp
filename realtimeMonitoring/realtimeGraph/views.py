@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 import json
 from os import name
 import time
@@ -673,3 +674,32 @@ Filtro para formatear datos en los templates
 @ register.filter
 def add_str(str1, str2):
     return str1 + str2
+
+
+def get_environment(request, **kwargs):
+    try:
+        measure = str(request.GET.get("measure", None))
+    except:
+        measure = None
+
+    try:
+        station = str(request.GET.get("station", None))
+    except:
+        station = None
+
+    if measure == None and station == None:
+        measure = 'Humedad'
+        station = 1
+    elif station == None:
+        station = 1
+    elif measure == None:
+        measure = 'Humedad'
+
+    stationsSelect = Station.objects.filter(id=station)
+    measureSelect = Measurement.objects.filter(name=measure)
+    filterData = Data.objects.filter(
+        station_id=stationsSelect[0].id, measurement_id=measureSelect[0].id).order_by('-time')[:50]
+    raw_data = [[d.toDict()['time'], d.toDict()['value']] for d in filterData]
+    data = {}
+    data["data"] = raw_data
+    return JsonResponse(data)
