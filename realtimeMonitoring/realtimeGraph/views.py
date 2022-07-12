@@ -751,6 +751,53 @@ def get_daterange(request):
 Filtro para formatear datos en el template de index
 """
 
+def get_environment(request, **kwargs):
+    try:
+        measure = str(request.GET.get("measure", None))
+    except:
+        measure = None
+
+    try:
+        station = str(request.GET.get("station", None))
+    except:
+        station = None
+
+    if measure == None and station == None:
+        measure = 'Humedad'
+        station = 1
+    elif station == None:
+        station = 1
+    elif measure == None:
+        measure = 'Humedad'
+
+    stationsSelect = Station.objects.filter(id=station)
+    measureSelect = Measurement.objects.filter(name=measure)
+    filterData = Data.objects.filter(
+        station_id=stationsSelect[0].id, measurement_id=measureSelect[0].id).order_by('-time')[:50]
+
+    data_result = []
+
+    for d in filterData:
+        data_a = []
+        cont = 0
+        for i in d.toDict()['times']:
+            data_a.append(
+                {
+                    "time": i,
+                    "value": d.toDict()['values'][cont]
+                }
+            )
+            cont += 1
+        data_result.append(
+            {
+                "base_time": d.toDict()['base_time'],
+                "avg_value": d.toDict()['avg_value'],
+                "date_time": data_a
+            }
+        )
+    data = {}
+    data["data"] = data_result
+    return JsonResponse(data)
 
 @register.filter
 def get_statistic(dictionary, key):
